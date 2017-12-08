@@ -4,7 +4,6 @@
 Add the JSON below to your composer.json file and run ```composer update``` to install and update your dependencies.
 ```json
 {
-    {
     "repositories": [
         {
             "type": "vcs",
@@ -15,6 +14,6 @@ Add the JSON below to your composer.json file and run ```composer update``` to i
         "cosman/queue": "dev-master"
     }
 }
-}
+
 ```
 
