@@ -1,0 +1,26 @@
+{
+    "name": "cosman/queue",
+    "description": "A simple job queue",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Agbitor Cosman",
+            "email": "agbitorcosman@gmail.com"
+        }
+    ],
+    "require": {
+        "symfony/http-foundation": "^3.3",
+        "guzzlehttp/guzzle": "^6.3",
+        "symfony/validator": "^3.3",
+        "illuminate/database": "^5.5",
+        "egulias/email-validator": "^2.1",
+        "silex/silex": "~2.0",
+        "danielstjules/stringy": "^3.1"
+    },
+    "autoload": {
+         "psr-4": {
+             "Cosman\\Queue\\": "src/Cosman/Queue"
+         }
+    }
+}
