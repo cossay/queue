@@ -2,19 +2,19 @@
 declare(strict_types = 1);
 namespace Cosman\Queue\Runner;
 
-use Cosman\Queue\Store\Repository\JobRepositoryInterface;
-use Cosman\Queue\Store\Repository\OutputRepositoryInterface;
-use GuzzleHttp\Client;
+use Cosman\Queue\Http\Response\Response;
 use Cosman\Queue\Store\Model\Job;
-use GuzzleHttp\Promise\PromiseInterface;
-use function GuzzleHttp\Promise\settle;
-use Symfony\Component\HttpFoundation\Request;
-use Psr\Http\Message\ResponseInterface;
 use Cosman\Queue\Store\Model\Output;
+use Cosman\Queue\Store\Repository\TaskRepositoryInterface;
+use Cosman\Queue\Support\DateTime\DateTime;
+use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\ServerException;
-use Cosman\Queue\Http\Response\Response;
-use Cosman\Queue\Support\DateTime\DateTime;
+use GuzzleHttp\Promise\PromiseInterface;
+use function GuzzleHttp\Promise\settle;
+use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\HttpFoundation\Request;
+use GuzzleHttp\Exception\RequestException;
 
 /**
  *
@@ -32,29 +32,20 @@ class JobRunner
 
     /**
      *
-     * @var JobRepositoryInterface
+     * @var TaskRepositoryInterface
      */
-    protected $jobRepository;
-
-    /**
-     *
-     * @var OutputRepositoryInterface
-     */
-    protected $outputRepository;
+    protected $repository;
 
     /**
      *
      * @param Client $httpClient
-     * @param JobRepositoryInterface $jobRepository
-     * @param OutputRepositoryInterface $outputRepository
+     * @param TaskRepositoryInterface $repository
      */
-    public function __construct(Client $httpClient, JobRepositoryInterface $jobRepository, OutputRepositoryInterface $outputRepository)
+    public function __construct(Client $httpClient, TaskRepositoryInterface $repository)
     {
         $this->httpClient = $httpClient;
         
-        $this->jobRepository = $jobRepository;
-        
-        $this->outputRepository = $outputRepository;
+        $this->repository = $repository;
     }
 
     /**
@@ -64,7 +55,7 @@ class JobRunner
      */
     protected function fetchWaitingJobs(): iterable
     {
-        return $this->jobRepository->fetchWaitingJobs(1000, 0);
+        return $this->repository->read(1000, 0);
     }
 
     /**
@@ -112,7 +103,7 @@ class JobRunner
      * @param array $responses
      * @param array $originalJobs
      */
-    protected function processTaskOupts(array $responses, array &$originalJobs)
+    protected function processTaskOutputs(array $responses, array &$originalJobs)
     {
         $outputs = [];
         $jobs = [];
@@ -129,8 +120,9 @@ class JobRunner
                 
                 $job->setTriedCounts($job->getTriedCounts() + 1);
                 $job->setIsExecuted(true);
+                $job->setIsSuccessful(Response::HTTP_OK === $response->getStatusCode());
                 
-                if (($job->getRetries() > $job->getTriedCounts()) && $response->getStatusCode() != Response::HTTP_OK) {
+                if (($job->getRetries() > $job->getTriedCounts()) && ! $job->isSuccessful()) {
                     $next_execution = new DateTime(sprintf('+%d seconds', $job->getRetryDelay()));
                     $job->setNextExecution($next_execution);
                 }
@@ -148,53 +140,65 @@ class JobRunner
             }
         }
         
-        if ($this->outputRepository->createMany(...$outputs)) {
-            $this->jobRepository->update(...$jobs);
-            echo sprintf('%d outputs written to repository at %s.', count($outputs), (new \DateTime())->format(\DateTime::W3C)) . PHP_EOL;
+        if ($this->repository->writeOutputs(...$outputs)) {
+            $this->repository->update(...$jobs);
+            echo sprintf('%d job(s) processed at %s.', count($outputs), (new \DateTime())->format(\DateTime::W3C)) . PHP_EOL;
         }
     }
 
     /**
      * Monitors an runs waiting jobs
-     * 
+     *
      * @param int $sleep
      * @param int $batchSize
      */
     public function run(int $sleep = 2, int $batchSize = 200): void
     {
+        echo 'WAITING FOR JOBS...' . PHP_EOL;
+        
         while (true) {
             
-            $waitingJobs = [];
+            $waitingJobs = $jobsCodeAsKey = [];
             
             foreach ($this->fetchWaitingJobs() as $job) {
                 if ($job instanceof Job) {
-                    $waitingJobs[$job->getCode()] = $job;
+                    $waitingJobs[] = $job;
+                    $jobsCodeAsKey[$job->getCode()] = $job;
                 }
             }
             
-            if (count($waitingJobs)) {
+            if (count($jobsCodeAsKey)) {
                 
-                $batches = array_chunk($waitingJobs, $batchSize, true);
+                $batches = array_chunk($jobsCodeAsKey, $batchSize, true);
                 
                 foreach ($batches as $batch) {
+                    
                     $responses = $this->compileTasks($batch)->wait();
                     
                     $decodedResponse = $this->decodeResponses($responses);
                     
-                    $this->processTaskOupts($decodedResponse, $batch);
+                    $this->processTaskOutputs($decodedResponse, $batch);
                     
                     unset($responses, $decodedResponse, $batch);
                 }
                 
+                $this->repository->release(...$waitingJobs);
+                
                 unset($batches);
             }
             
-            unset($waitingJobs);
+            unset($waitingJobs, $jobsCodeAsKey);
             
             sleep($sleep);
         }
     }
 
+    /**
+     * Transforms a collection of jobs into request promises for execution
+     *
+     * @param array $jobs
+     * @return PromiseInterface
+     */
     protected function compileTasks(array $jobs): PromiseInterface
     {
         $promises = [];
@@ -209,6 +213,7 @@ class JobRunner
     }
 
     /**
+     * Decodes a collection of responses
      *
      * @param iterable $responses
      * @return \Psr\Http\Message\ResponseInterface[]
@@ -220,13 +225,22 @@ class JobRunner
         foreach ($responses as $jobCode => $response) {
             // Request suceeded
             if ($response['state'] == 'fulfilled') {
-                $resolved[$jobCode] = $response['value'];
+                $resolved[$jobCode] = $response['value'] ?? null;
             } else {
                 // Request failed
-                $exception = $response['reason'];
+                $exception = $response['reason'] ?? null;
                 
-                if ($exception instanceof ClientException || $exception instanceof ServerException && $exception->hasResponse()) {
-                    $resolved[$jobCode] = $exception->getResponse();
+                $dummyResponseCode = $exception->getCode() ? $exception->getCode() : Response::HTTP_INTERNAL_SERVER_ERROR;
+                $dummyResponseMessage = $exception->getMessage();
+                
+                if ($exception instanceof RequestException) {
+                    $dummyResponseMessage = 'Queue server exception: Connection problem: ' . $exception->getMessage();
+                }
+                
+                $dummyResponse = new \GuzzleHttp\Psr7\Response($dummyResponseCode, [], null, '1.1', $dummyResponseMessage);
+                
+                if ($exception instanceof RequestException || $exception instanceof ClientException || $exception instanceof ServerException && $exception->hasResponse()) {
+                    $resolved[$jobCode] = $exception->getResponse() ? $exception->getResponse() : $dummyResponse;
                 }
             }
         }

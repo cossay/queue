@@ -38,7 +38,7 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
             $selectableFields = $this->createSelectableFieldList();
         }
         
-        $query = $this->capsule->table(JobTable::NAME)
+        $query = $this->connection->table(JobTable::NAME)
             ->leftJoin(ProjectTable::NAME, ProjectTable::FIELD_ID, '=', JobTable::FIELD_PROJECT_ID)
             ->leftJoin(ClientTable::NAME, ClientTable::FIELD_ID, '=', ProjectTable::FIELD_CLIENT_ID);
         
@@ -155,7 +155,9 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
         $attributes = array(
             JobTable::FIELD_CODE => $code,
             JobTable::FIELD_PROJECT_ID => $job->getProject()->getId(),
-            JobTable::FIELD_IS_EXECUTED => Job::STATUS_NOT_EXECUTED,
+            JobTable::FIELD_IS_EXECUTED => JobTable::BOOLEAN_FALSE,
+            JobTable::FIELD_IS_SUCCESSFUL => JobTable::BOOLEAN_FALSE,
+            JobTable::FIELD_IS_PROCESSING => JobTable::BOOLEAN_FALSE,
             JobTable::FIELD_TITLE => $job->getTitle(),
             JobTable::FIELD_DESCRIPTION => $job->getDescription(),
             JobTable::FIELD_DELAY => $job->getDelay(),
@@ -171,7 +173,7 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
             JobTable::FIELD_UPDATED => null
         );
         
-        return $this->capsule->table(JobTable::NAME)->insertGetId($attributes);
+        return $this->connection->table(JobTable::NAME)->insertGetId($attributes);
     }
 
     /**
@@ -192,7 +194,9 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
             $jobArray[] = array(
                 JobTable::FIELD_CODE => $code,
                 JobTable::FIELD_PROJECT_ID => $job->getProject()->getId(),
-                JobTable::FIELD_IS_EXECUTED => Job::STATUS_NOT_EXECUTED,
+                JobTable::FIELD_IS_EXECUTED => JobTable::BOOLEAN_FALSE,
+                JobTable::FIELD_IS_SUCCESSFUL => JobTable::BOOLEAN_FALSE,
+                JobTable::FIELD_IS_PROCESSING => JobTable::BOOLEAN_FALSE,
                 JobTable::FIELD_TITLE => $job->getTitle(),
                 JobTable::FIELD_DESCRIPTION => $job->getDescription(),
                 JobTable::FIELD_DELAY => $job->getDelay(),
@@ -209,7 +213,7 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
             );
         }
         
-        return $this->capsule->table(JobTable::NAME)->insert($jobArray);
+        return $this->connection->table(JobTable::NAME)->insert($jobArray);
     }
 
     /**
@@ -219,17 +223,18 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
      */
     public function update(Job ...$jobs): int
     {
-        $connection = $this->capsule->connection();
+        $affectedRows = 0;
         
         try {
             
-            $affectedRows = 0;
+            $this->connection->beginTransaction();
             
             foreach ($jobs as $job) {
                 if ($job->getId()) {
                     $attributes = array(
                         JobTable::FIELD_PROJECT_ID => $job->getProject()->getId(),
-                        JobTable::FIELD_IS_EXECUTED => $job->isExecuted() ? Job::STATUS_EXECUTED : Job::STATUS_NOT_EXECUTED,
+                        JobTable::FIELD_IS_EXECUTED => $job->isExecuted() ? JobTable::BOOLEAN_TRUE : JobTable::BOOLEAN_FALSE,
+                        JobTable::FIELD_IS_SUCCESSFUL => $job->isSuccessful() ? JobTable::BOOLEAN_TRUE : JobTable::BOOLEAN_FALSE,
                         JobTable::FIELD_TITLE => $job->getTitle(),
                         JobTable::FIELD_DESCRIPTION => $job->getDescription(),
                         JobTable::FIELD_DELAY => $job->getDelay(),
@@ -244,7 +249,7 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
                         JobTable::FIELD_UPDATED => new DateTime()
                     );
                     
-                    $this->capsule->table(JobTable::NAME)
+                    $this->connection->table(JobTable::NAME)
                         ->where(JobTable::FIELD_ID, '=', $job->getId())
                         ->update($attributes);
                     
@@ -252,14 +257,14 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
                 }
             }
             
-            $connection->commit();
-            
-            return $affectedRows;
+            $this->connection->commit();
         } catch (\Exception $e) {
-            $connection->rollBack();
+            $this->connection->rollBack();
             
             throw $e;
         }
+        
+        return $affectedRows;
     }
 
     /**
@@ -281,7 +286,7 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
             return 0;
         }
         
-        return $this->capsule->table(JobTable::NAME)
+        return $this->connection->table(JobTable::NAME)
             ->whereIn(JobTable::FIELD_ID, $ids)
             ->delete();
     }
@@ -291,7 +296,7 @@ class JobRepository extends BaseRepository implements JobRepositoryInterface
      * {@inheritdoc}
      * @see \Cosman\Queue\Store\Repository\BaseRepository::format()
      */
-    public function format($model, array $relations = []): ?BaseModel
+    protected function format($model, array $relations = []): ?BaseModel
     {
         $job = Job::createInstance($model);
         

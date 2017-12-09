@@ -31,18 +31,33 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
 
     /**
      *
-     * @param string[] $selectableFields
-     * @return \Illuminate\Database\Query\Builder
+     * @param array $selectableFields
+     * @param Job $job
+     * @param Client $client
+     * @param Project $project
+     * @return Builder
      */
-    protected function withJoins(array $selectableFields = []): Builder
+    protected function withJoins(array $selectableFields = [], Job $job = null, Client $client = null, Project $project = null): Builder
     {
-        $query = $this->capsule->table(OutputTable::NAME)
+        $query = $this->connection->table(OutputTable::NAME)
             ->leftJoin(JobTable::NAME, JobTable::FIELD_ID, '=', OutputTable::FIELD_JOB_ID)
             ->leftJoin(ProjectTable::NAME, ProjectTable::FIELD_ID, '=', JobTable::FIELD_PROJECT_ID)
             ->leftJoin(ClientTable::NAME, ClientTable::FIELD_ID, '=', ProjectTable::FIELD_CLIENT_ID);
         
         if (empty($selectableFields)) {
             $selectableFields = $this->createSelectableFieldList();
+        }
+        
+        if (null !== $job) {
+            $query->where(OutputTable::FIELD_JOB_ID, '=', $job->getId());
+        }
+        
+        if (null !== $client) {
+            $query->where(ClientTable::FIELD_ID, '=', $client->getId());
+        }
+        
+        if (null !== $project) {
+            $query->where(ProjectTable::FIELD_ID, '=', $project->getId());
         }
         
         return $query->select($selectableFields);
@@ -55,21 +70,7 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
      */
     public function count(Job $job = null, Client $client = null, Project $project = null): int
     {
-        $query = $this->withJoins();
-        
-        if (null !== $job) {
-            $query->where(OutputTable::FIELD_JOB_ID, '=', $job->getId());
-        }
-        
-        if (null !== $client) {
-            $query->where(ClientTable::FIELD_ID, '=', $client->getId());
-        }
-        
-        if (null !== $project) {
-            $query->where(ProjectTable::FIELD_ID, '=', $project->getId());
-        }
-        
-        return $query->count();
+        return $this->withJoins([], $job, $client, $project)->count();
     }
 
     /**
@@ -79,23 +80,10 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
      */
     public function fetch(int $limit, int $offset, Job $job = null, Client $client = null, Project $project = null): iterable
     {
-        $query = $this->withJoins()
+        $models = $this->withJoins([], $job, $client, $project)
             ->limit($limit)
-            ->offset($offset);
-        
-        if (null !== $job) {
-            $query->where(OutputTable::FIELD_JOB_ID, '=', $job->getId());
-        }
-        
-        if (null !== $client) {
-            $query->where(ClientTable::FIELD_ID, '=', $client->getId());
-        }
-        
-        if (null !== $project) {
-            $query->where(ProjectTable::FIELD_ID, '=', $project->getId());
-        }
-        
-        $models = $query->get();
+            ->offset($offset)
+            ->get();
         
         return $this->formatCollection($models);
     }
@@ -107,23 +95,12 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
      */
     public function fetchById(int $id, Job $job = null, Client $client = null, Project $project = null): ?Output
     {
-        $query = $this->withJoins();
+        $model = $this->withJoins([], $job, $client, $project)
+            ->where(OutputTable::FIELD_ID, '=', $id)
+            ->limit(1)
+            ->first();
         
-        if (null !== $job) {
-            $query->where(OutputTable::FIELD_JOB_ID, '=', $job->getId());
-        }
-        
-        if (null !== $client) {
-            $query->where(ClientTable::FIELD_ID, '=', $client->getId());
-        }
-        
-        if (null !== $project) {
-            $query->where(ProjectTable::FIELD_ID, '=', $project->getId());
-        }
-        
-        $query->where(OutputTable::FIELD_ID, '=', $id)->limit(1);
-        
-        return $this->format($query->first());
+        return $this->format($model);
     }
 
     /**
@@ -133,23 +110,12 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
      */
     public function fetchByCode(string $code, Job $job = null, Client $client = null, Project $project = null): ?Output
     {
-        $query = $this->withJoins();
+        $model = $this->withJoins([], $job, $client, $project)
+            ->where(OutputTable::FIELD_CODE, '=', $code)
+            ->limit(1)
+            ->first();
         
-        if (null !== $job) {
-            $query->where(OutputTable::FIELD_JOB_ID, '=', $job->getId());
-        }
-        
-        if (null !== $client) {
-            $query->where(ClientTable::FIELD_ID, '=', $client->getId());
-        }
-        
-        if (null !== $project) {
-            $query->where(ProjectTable::FIELD_ID, '=', $project->getId());
-        }
-        
-        $query->where(OutputTable::FIELD_CODE, '=', $code)->limit(1);
-        
-        return $this->format($query->first());
+        return $this->format($model);
     }
 
     /**
@@ -172,7 +138,7 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
             OutputTable::FIELD_UPDATED_AT => null
         );
         
-        return $this->capsule->table(OutputTable::NAME)->insertGetId($attributes);
+        return $this->connection->table(OutputTable::NAME)->insertGetId($attributes);
     }
 
     /**
@@ -202,7 +168,7 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
             );
         }
         
-        return $this->capsule->table(OutputTable::NAME)->insert($outputsArrays);
+        return $this->connection->table(OutputTable::NAME)->insert($outputsArrays);
     }
 
     /**
@@ -212,10 +178,8 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
      */
     public function update(Output ...$outputs): int
     {
-        $connection = $this->capsule->connection();
-        
         try {
-            $connection->beginTransaction();
+            $this->connection->beginTransaction();
             
             $affectedRows = 0;
             
@@ -232,17 +196,17 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
                     
                     $affectedRows ++;
                     
-                    $this->capsule->table(OutputTable::NAME)
+                    $this->connection->table(OutputTable::NAME)
                         ->where(OutputTable::FIELD_ID, '=', $output->getId())
                         ->update($attributes);
                 }
             }
             
-            $connection->commit();
+            $this->connection->commit();
             
             return $affectedRows;
         } catch (Exception $e) {
-            $connection->rollBack();
+            $this->connection->rollBack();
             throw $e;
         }
     }
@@ -262,15 +226,13 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
             }
         }
         
-        $affectedRows = 0;
-        
-        if (count($ids)) {
-            $affectedRows = $this->capsule->table(OutputTable::NAME)
-                ->orWhereIn(OutputTable::FIELD_ID, $ids)
-                ->delete();
+        if (! count($ids)) {
+            return 0;
         }
         
-        return $affectedRows;
+        return $this->connection->table(OutputTable::NAME)
+            ->orWhereIn(OutputTable::FIELD_ID, $ids)
+            ->delete();
     }
 
     /**
@@ -278,7 +240,7 @@ class OutputRepository extends BaseRepository implements OutputRepositoryInterfa
      * {@inheritdoc}
      * @see \Cosman\Queue\Store\Repository\BaseRepository::format()
      */
-    public function format($model, array $relations = []): ?BaseModel
+    protected function format($model, array $relations = []): ?BaseModel
     {
         $output = Output::createInstance($model);
         

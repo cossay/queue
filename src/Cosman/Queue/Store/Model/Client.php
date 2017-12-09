@@ -13,11 +13,6 @@ use Cosman\Queue\Store\Table\Schema\Field;
  */
 class Client extends BaseModel
 {
-
-    const STATUS_BLOCKED = 1;
-
-    const STATUS_UNBLOCKED = 0;
-
     /**
      *
      * @var string
@@ -227,7 +222,7 @@ class Client extends BaseModel
         $instance->setName((string) $reader->read($nameField));
         $instance->setEmail((string) $reader->read($emailField));
         $instance->setToken((string) $reader->read($tokenField));
-        $instance->setIsBlocked(Client::STATUS_BLOCKED === (string) $reader->read($blockedField));
+        $instance->setIsBlocked(ClientTable::BOOLEAN_TRUE === (string) $reader->read($blockedField));
         $instance->setCreatedAt($instance->createDatetime((string) $reader->read($createdAtField)));
         $instance->setUpdatedAt($instance->createDatetime((string) $reader->read($updatedAtField)));
         

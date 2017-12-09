@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Dec 08, 2017 at 11:41 PM
+-- Generation Time: Dec 09, 2017 at 05:29 PM
 -- Server version: 10.2.9-MariaDB
 -- PHP Version: 7.1.12
 
@@ -19,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `queues_test`
+-- Database: `cossay`
 --
 
 -- --------------------------------------------------------
@@ -59,6 +59,8 @@ CREATE TABLE `jobs` (
   `callback_url` varchar(2000) NOT NULL,
   `request_method` varchar(30) NOT NULL DEFAULT 'GET',
   `is_executed` bit(1) NOT NULL,
+  `is_successful` bit(1) NOT NULL,
+  `is_processing` bit(1) NOT NULL,
   `next_execution` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL
@@ -147,12 +149,12 @@ ALTER TABLE `clients`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=472;
 --
 -- AUTO_INCREMENT for table `outputs`
 --
 ALTER TABLE `outputs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=588;
 --
 -- AUTO_INCREMENT for table `projects`
 --

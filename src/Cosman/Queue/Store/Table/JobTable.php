@@ -41,6 +41,10 @@ class JobTable extends BaseTable
 
     const FIELD_IS_EXECUTED = 'jobs.is_executed';
     
+    const FIELD_IS_SUCCESSFUL = 'jobs.is_successful';
+    
+    const FIELD_IS_PROCESSING = 'jobs.is_processing';
+    
     const FIELD_NEXT_EXECUTION = 'jobs.next_execution';
 
     const FIELD_CREATED_AT = 'jobs.created_at';

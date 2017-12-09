@@ -20,7 +20,7 @@ use Cosman\Queue\Store\Validation\JobValidator;
 use Cosman\Queue\Store\Validation\OutputValidator;
 use Cosman\Queue\Store\Validation\ProjectValidator;
 use Cosman\Queue\Store\Validation\Constraint\ClientUniqueEmailValidator;
-use Illuminate\Database\Capsule\Manager;
+use Illuminate\Database\Connection;
 use Pimple\Container;
 use Pimple\ServiceProviderInterface;
 use Silex\Application;
@@ -42,46 +42,33 @@ class SilexServiceProvider implements ServiceProviderInterface, ControllerProvid
      */
     public function register(Container $container)
     {
-        // DATABASE
-        $container['cosman.queue.database.capsule'] = function (Container $container) {
+        // DATABASE CONNECTION
+        $container['cosman.queue.database.connection.default'] = function (Container $container) {
             
-            $capsule = $container['cosman.queue.database.connection'] ?? null;
+            $connection = $container['cosman.queue.database.connection'] ?? null;
             
-            if (! ($capsule instanceof Manager)) {
-                $capsule = new Manager();
-                
-                $capsule->addConnection([
-                    'driver' => 'mysql',
-                    'host' => 'localhost',
-                    'database' => 'queues',
-                    'username' => 'root',
-                    'password' => '',
-                    'charset' => 'utf8mb4',
-                    'collation' => 'utf8mb4_unicode_ci',
-                    'prefix' => ''
-                ]);
+            if (! ($connection instanceof Connection)) {
+                $connection = new Connection(new \PDO('mysql:host=localhost;dbname=queues', 'root', ''));
             }
             
-            $capsule->setAsGlobal();
-            
-            return $capsule;
+            return $connection;
         };
         
         // REPOSITORIES
         $container['cosman.queue.repo.client'] = function (Container $container) {
-            return new ClientRepository($container['cosman.queue.database.capsule']);
+            return new ClientRepository($container['cosman.queue.database.connection.default']);
         };
         
         $container['cosman.queue.repo.project'] = function (Container $container) {
-            return new ProjectRepository($container['cosman.queue.database.capsule']);
+            return new ProjectRepository($container['cosman.queue.database.connection.default']);
         };
         
         $container['cosman.queue.repo.job'] = function (Container $container) {
-            return new JobRepository($container['cosman.queue.database.capsule']);
+            return new JobRepository($container['cosman.queue.database.connection.default']);
         };
         
         $container['cosman.queue.repo.output'] = function (Container $container) {
-            return new OutputRepository($container['cosman.queue.database.capsule']);
+            return new OutputRepository($container['cosman.queue.database.connection.default']);
         };
         
         // VALIDATION CONSTRAINTS'

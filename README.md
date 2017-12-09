@@ -20,7 +20,7 @@ Add the JSON below to your composer.json file and run ```composer update``` to i
 Import the included SQL dump into your database.
 
 ## Setting up the front facing API server
-Create a directory in the same folder as your composer.json file. This folder will serve as the document root your queue server.
+Create a directory in the same directory as your composer.json file. This directory will serve as the document root your front facing queue API server.
 Create an index.php file in the folder you just created and include the following lines of code.
 
 ```php
@@ -49,4 +49,10 @@ $queueServer = new QueueServer($capsule);
 $queueServer->run();
 ```
 
-## Setting up the task runner
+## Setting up the job/task runner
+
+Create a new php file outside your document root and place the following lines of into it.
+
+```php
+
+```

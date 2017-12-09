@@ -74,7 +74,13 @@ class ClientController extends Controller
             
             $clientId = $this->repository->create($client);
             
-            return $this->response->respond($this->repository->fetchById($clientId));
+            $createdClient = $this->repository->fetchById($clientId);
+            
+            if ($createdClient instanceof Client) {
+                $createdClient = $createdClient->toArray();
+            }
+            
+            return $this->response->respond($createdClient);
         } catch (Exception $e) {
             return $this->response->exception($e);
         }

@@ -16,10 +16,6 @@ use Cosman\Queue\Support\DateTime\DateTime;
 class Job extends BaseModel
 {
 
-    const STATUS_EXECUTED = 1;
-
-    const STATUS_NOT_EXECUTED = 0;
-
     const MIN_JOB_RETRIES = 1;
 
     const MAX_JOB_RETRIES = 10;
@@ -95,6 +91,18 @@ class Job extends BaseModel
      * @var bool
      */
     protected $is_executed = false;
+
+    /**
+     *
+     * @var bool
+     */
+    protected $is_successful = false;
+    
+    /**
+     *
+     * @var bool
+     */
+    protected $is_processing = false;
 
     /**
      *
@@ -385,6 +393,52 @@ class Job extends BaseModel
     }
 
     /**
+     * Tells whether a job has been executed successfully
+     *
+     * @return bool|NULL
+     */
+    public function isSuccessful(): ?bool
+    {
+        return $this->is_successful;
+    }
+
+    /**
+     * Sets success state of a job
+     *
+     * @param bool $state
+     * @return self
+     */
+    public function setIsSuccessful(?bool $state): self
+    {
+        $this->is_successful = $state;
+        
+        return $this;
+    }
+    
+    /**
+     * Tells whether a job has being executed
+     *
+     * @return bool|NULL
+     */
+    public function isProcessing(): ?bool
+    {
+        return $this->is_processing;
+    }
+    
+    /**
+     * Sets whether a job has being executed
+     *
+     * @param bool $state
+     * @return self
+     */
+    public function setIsProcessing(?bool $state): self
+    {
+        $this->is_processing = $state;
+        
+        return $this;
+    }
+
+    /**
      * Returns number of seconds a job should be delayed before being executed
      *
      * @return int|NULL
@@ -481,6 +535,8 @@ class Job extends BaseModel
         $retriesField = $table->get(JobTable::FIELD_RETRIES, $fieldDefault)->getName();
         $retryCountsField = $table->get(JobTable::FIELD_RETRY_COUNTS, $fieldDefault)->getName();
         $isExecutedField = $table->get(JobTable::FIELD_IS_EXECUTED, $fieldDefault)->getName();
+        $isSuccessfulField = $table->get(JobTable::FIELD_IS_SUCCESSFUL, $fieldDefault)->getName();
+        $isProcessingField = $table->get(JobTable::FIELD_IS_PROCESSING, $fieldDefault)->getName();
         $createdAtField = $table->get(JobTable::FIELD_CREATED_AT, $fieldDefault)->getName();
         $updatedAtField = $table->get(JobTable::FIELD_UPDATED, $fieldDefault)->getName();
         
@@ -517,7 +573,9 @@ class Job extends BaseModel
         $instance->setRequestMethod((string) $reader->read($methodField));
         $instance->setRetries((int) $reader->read($retriesField));
         $instance->setTriedCounts((int) $reader->read($retryCountsField));
-        $instance->setIsExecuted(Job::STATUS_EXECUTED === $reader->read($isExecutedField));
+        $instance->setIsExecuted(JobTable::BOOLEAN_TRUE === $reader->read($isExecutedField));
+        $instance->setIsSuccessful(JobTable::BOOLEAN_TRUE === $reader->read($isSuccessfulField));
+        $instance->setIsProcessing(JobTable::BOOLEAN_TRUE === $reader->read($isProcessingField));
         $instance->setNextExecution($instance->createDatetime((string) $reader->read($nextExecutionField)));
         $instance->setCreatedAt($instance->createDatetime((string) $reader->read($createdAtField)));
         $instance->setUpdatedAt($instance->createDatetime((string) $reader->read($updatedAtField)));

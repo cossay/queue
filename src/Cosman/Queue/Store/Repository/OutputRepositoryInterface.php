@@ -12,7 +12,7 @@ use Cosman\Queue\Store\Model\Project;
  * @author cosman
  *        
  */
-interface OutputRepositoryInterface
+interface OutputRepositoryInterface extends RepositoryInterface
 {
 
     /**

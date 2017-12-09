@@ -2,12 +2,12 @@
 declare(strict_types = 1);
 namespace Cosman\Queue;
 
-use Silex\Application;
-use Illuminate\Database\Capsule\Manager;
 use Cosman\Queue\Http\Response\Response;
 use Cosman\Queue\ServiceProvider\SilexServiceProvider;
-use Silex\Provider\ValidatorServiceProvider;
+use Illuminate\Database\Connection;
+use Silex\Application;
 use Silex\Provider\ServiceControllerServiceProvider;
+use Silex\Provider\ValidatorServiceProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response as SymphonyResponse;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -22,11 +22,12 @@ class QueueServer extends Application
 {
 
     /**
-     *
-     * @param Manager $capsule
+     * 
+     * @param Connection $connection
+     * @param bool $debug
      * @param array $values
      */
-    public function __construct(Manager $capsule, bool $debug = false, array $values = [])
+    public function __construct(Connection $connection, bool $debug = false, array $values = [])
     {
         parent::__construct($values);
         
@@ -53,11 +54,9 @@ class QueueServer extends Application
             return $response;
         });
         
-        $capsule->setAsGlobal();
-        
         $this->register(new ValidatorServiceProvider());
         $this->register(new SilexServiceProvider(), array(
-            'cosman.queue.database.connection' => $capsule
+            'cosman.queue.database.connection' => $connection
         ));
         $this->register(new ServiceControllerServiceProvider());
         $this->mount('v1', new SilexServiceProvider());

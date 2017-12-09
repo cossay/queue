@@ -14,7 +14,7 @@ use Cosman\Queue\Store\Model\Project;
  * @author cosman
  *        
  */
-interface JobRepositoryInterface
+interface JobRepositoryInterface extends RepositoryInterface
 {
 
     /**

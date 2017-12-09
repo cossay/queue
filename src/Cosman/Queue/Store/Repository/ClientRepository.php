@@ -24,7 +24,7 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
      */
     protected function withJoins(array $selectableFields = []): Builder
     {
-        $query = $this->capsule->table(ClientTable::NAME);
+        $query = $this->connection->table(ClientTable::NAME);
         
         if (empty($selectableFields)) {
             $selectableFields = $this->createSelectableFieldList();
@@ -115,7 +115,7 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ClientTable::FIELD_CREATED_AT => new DateTime()
         );
         
-        return $this->capsule->table(ClientTable::NAME)->insertGetId($attributes);
+        return $this->connection->table(ClientTable::NAME)->insertGetId($attributes);
     }
 
     /**
@@ -125,13 +125,11 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
      */
     public function update(Client ...$clients): int
     {
-        $connection = $this->capsule->connection();
+        $affectedRows = 0;
         
         try {
             
-            $affectedRows = 0;
-            
-            $connection->beginTransaction();
+            $this->connection->beginTransaction();
             
             foreach ($clients as $client) {
                 if ($client->getId()) {
@@ -143,22 +141,20 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
                         ClientTable::FIELD_UPDATED_AT => new DateTime()
                     );
                     
-                    $this->capsule->table(ClientTable::NAME)
+                    $affectedRows += $this->connection->table(ClientTable::NAME)
                         ->where(ClientTable::FIELD_ID, '=', $client->getId())
                         ->update($attributes);
-                    
-                    $affectedRows ++;
                 }
             }
             
-            $connection->commit();
-            
-            return $affectedRows;
+            $this->connection->commit();
         } catch (Exception $e) {
-            $connection->rollBack();
+            $this->connection->rollBack();
             
             throw $e;
         }
+        
+        return $affectedRows;
     }
 
     /**
@@ -180,7 +176,7 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             return 0;
         }
         
-        return $this->capsule->table(ClientTable::NAME)
+        return $this->connection->table(ClientTable::NAME)
             ->whereIn(ClientTable::FIELD_ID, $ids)
             ->delete();
     }
@@ -190,7 +186,7 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
      * {@inheritdoc}
      * @see \Cosman\Queue\Store\Repository\BaseRepository::format()
      */
-    public function format($model, array $relations = []): ?BaseModel
+    protected function format($model, array $relations = []): ?BaseModel
     {
         return Client::createInstance($model);
     }

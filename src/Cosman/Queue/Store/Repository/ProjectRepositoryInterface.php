@@ -10,7 +10,7 @@ use Cosman\Queue\Store\Model\Project;
  * @author cosman
  *        
  */
-interface ProjectRepositoryInterface
+interface ProjectRepositoryInterface extends RepositoryInterface
 {
 
     /**

@@ -2,11 +2,11 @@
 declare(strict_types = 1);
 namespace Cosman\Queue\Store\Repository;
 
-use Illuminate\Database\Capsule\Manager;
-use Exception;
 use Cosman\Queue\Store\Model\BaseModel;
-use Cosman\Queue\Support\DateTime\DateTime;
 use Cosman\Queue\Store\Table\Schema\Field;
+use Cosman\Queue\Support\DateTime\DateTime;
+use Illuminate\Database\Connection;
+use Exception;
 
 /**
  * Base repository class
@@ -19,17 +19,27 @@ abstract class BaseRepository
 
     /**
      *
-     * @var Manager
+     * @var Connection
      */
-    protected $capsule;
+    protected $connection;
 
     /**
      *
-     * @param Manager $capsule
+     * @param Connection $connection
      */
-    public function __construct(Manager $capsule)
+    public function __construct(Connection $connection)
     {
-        $this->capsule = $capsule;
+        $this->connection = $connection;
+    }
+
+    /**
+     * Returns underlying database connection
+     *
+     * @return \Illuminate\Database\Connection
+     */
+    public function getConnection(): Connection
+    {
+        return $this->connection;
     }
 
     /**
@@ -39,7 +49,7 @@ abstract class BaseRepository
      * @param string[] $relations
      * @return iterable
      */
-    public function formatCollection(iterable $collection, array $relations = []): iterable
+    protected function formatCollection(iterable $collection, array $relations = []): iterable
     {
         $formattedCollection = [];
         
@@ -60,7 +70,7 @@ abstract class BaseRepository
      * @param mixed $model
      * @param string[] $relations
      */
-    abstract public function format($model, array $relations = []): ?BaseModel;
+    abstract protected function format($model, array $relations = []): ?BaseModel;
 
     /**
      * Reads an attribute from a given value

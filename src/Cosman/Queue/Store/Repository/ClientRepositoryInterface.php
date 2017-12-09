@@ -10,7 +10,7 @@ use Cosman\Queue\Store\Model\Client;
  * @author cosman
  *        
  */
-interface ClientRepositoryInterface
+interface ClientRepositoryInterface extends RepositoryInterface
 {
 
     /**

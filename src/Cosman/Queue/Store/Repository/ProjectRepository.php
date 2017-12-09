@@ -23,15 +23,20 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
 
     /**
      *
-     * @param string[] $selectableFields
-     * @return \Illuminate\Database\Query\Builder
+     * @param array $selectableFields
+     * @param Client $client
+     * @return Builder
      */
-    protected function withJoins(array $selectableFields = []): Builder
+    protected function withJoins(array $selectableFields = [], Client $client = null): Builder
     {
-        $query = $this->capsule->table(ProjectTable::NAME)->leftJoin(ClientTable::NAME, ClientTable::FIELD_ID, '=', ProjectTable::FIELD_CLIENT_ID);
+        $query = $this->connection->table(ProjectTable::NAME)->leftJoin(ClientTable::NAME, ClientTable::FIELD_ID, '=', ProjectTable::FIELD_CLIENT_ID);
         
         if (empty($selectableFields)) {
             $selectableFields = $this->createSelectableFieldList();
+        }
+        
+        if (null !== $client) {
+            $query->where(ProjectTable::FIELD_CLIENT_ID, '=', $client->getId());
         }
         
         return $query->select($selectableFields);
@@ -44,11 +49,7 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
      */
     public function count(Client $client = null): int
     {
-        $query = $this->withJoins();
-        
-        if (null !== $client) {
-            $query->where(ProjectTable::FIELD_CLIENT_ID, '=', $client->getId());
-        }
+        $query = $this->withJoins([], $client);
         
         return $query->count();
     }
@@ -60,13 +61,9 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
      */
     public function fetch(int $limit, int $offset, Client $client = null): array
     {
-        $query = $this->withJoins()
+        $query = $this->withJoins([], $client)
             ->limit($limit)
             ->offset($offset);
-        
-        if (null !== $client) {
-            $query->where(ProjectTable::FIELD_CLIENT_ID, '=', $client->getId());
-        }
         
         return $this->formatCollection($query->get());
     }
@@ -78,11 +75,7 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
      */
     public function fetchById(int $id, Client $client = null): ?Project
     {
-        $query = $this->withJoins()->where(ProjectTable::FIELD_ID, '=', $id);
-        
-        if (null !== $client) {
-            $query->where(ProjectTable::FIELD_CLIENT_ID, '=', $client->getId());
-        }
+        $query = $this->withJoins([], $client)->where(ProjectTable::FIELD_ID, '=', $id);
         
         return $this->format($query->first());
     }
@@ -94,11 +87,7 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
      */
     public function fetchByCode(string $code, Client $client = null): ?Project
     {
-        $query = $this->withJoins()->where(ProjectTable::FIELD_CODE, '=', $code);
-        
-        if (null !== $client) {
-            $query->where(ProjectTable::FIELD_CLIENT_ID, '=', $client->getId());
-        }
+        $query = $this->withJoins([], $client)->where(ProjectTable::FIELD_CODE, '=', $code);
         
         return $this->format($query->first());
     }
@@ -121,7 +110,7 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
             ProjectTable::FIELD_UPDATED_AT => null
         );
         
-        return $this->capsule->table(ProjectTable::NAME)->insertGetId($attributes);
+        return $this->connection->table(ProjectTable::NAME)->insertGetId($attributes);
     }
 
     /**
@@ -131,38 +120,34 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
      */
     public function update(Project ...$projects): int
     {
-        $connection = $this->capsule->connection();
+        $affetedRows = 0;
         
         try {
-            $affetedRows = 0;
             
-            $connection->beginTransaction();
+            $this->connection->beginTransaction();
             
             foreach ($projects as $project) {
                 if ($project->getId()) {
                     $attributes = array(
                         ProjectTable::FIELD_CLIENT_ID => $project->getClient()->getId(),
-                        //ProjectTable::FIELD_CODE => $project->getCode(),
                         ProjectTable::FIELD_NAME => $project->getName(),
                         ProjectTable::FIELD_DESCRIPTION => $project->getDescription(),
                         ProjectTable::FIELD_UPDATED_AT => new DateTime()
                     );
                     
-                    $this->capsule->table(ProjectTable::NAME)
+                    $affetedRows += $this->connection->table(ProjectTable::NAME)
                         ->where(ProjectTable::FIELD_ID, '=', $project->getId())
                         ->update($attributes);
-                    
-                    $affetedRows ++;
                 }
             }
             
-            $connection->commit();
-            
-            return $affetedRows;
+            $this->connection->commit();
         } catch (Exception $e) {
-            $connection->rollBack();
+            $this->connection->rollBack();
             throw $e;
         }
+        
+        return $affetedRows;
     }
 
     /**
@@ -180,7 +165,7 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
             }
         }
         
-        return $this->capsule->table(ProjectTable::NAME)
+        return $this->connection->table(ProjectTable::NAME)
             ->whereIn(ProjectTable::FIELD_ID, $ids)
             ->delete();
     }
@@ -191,7 +176,7 @@ class ProjectRepository extends BaseRepository implements ProjectRepositoryInter
      * @param array $relations
      * @return BaseModel|NULL
      */
-    public function format($model, array $relations = []): ?BaseModel
+    protected function format($model, array $relations = []): ?BaseModel
     {
         $project = Project::createInstance($model);
         

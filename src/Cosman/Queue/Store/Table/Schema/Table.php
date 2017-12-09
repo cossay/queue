@@ -15,6 +15,12 @@ class Table
 
     const TABLE_FIELD_NAME = 'NAME';
 
+    const SKIP_FIELD_NAMES = [
+        'NAME',
+        'BOOLEAN_TRUE',
+        'BOOLEAN_FALSE'
+    ];
+
     /**
      *
      * @var string
@@ -40,7 +46,7 @@ class Table
         $definition = new ParameterBag($reflection->getConstants());
         
         foreach ($definition as $key => $field) {
-            if (self::TABLE_FIELD_NAME != $key) {
+            if (! in_array($key, self::SKIP_FIELD_NAMES)) {
                 $this->fields->set($field, new Field($field));
             } else {
                 $this->name = $field;
