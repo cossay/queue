@@ -36,15 +36,14 @@ $capsule->addConnection([
     'driver' => 'mysql',
     'host' => 'localhost',
     'database' => 'queues',
-    'username' => 'database-username',
-    'password' => 'database-password',
+    'username' => 'root',
+    'password' => 'cossay',
     'charset' => 'utf8mb4',
     'collation' => 'utf8mb4_unicode_ci',
     'prefix' => ''
 ]);
 
-$capsule->setAsGlobal();
-$queueServer = new QueueServer($capsule);
+$queueServer = new QueueServer($capsule->getConnection());
 
 $queueServer->run();
 ```
@@ -54,5 +53,38 @@ $queueServer->run();
 Create a new php file outside your document root and place the following lines of into it.
 
 ```php
+<?php
+declare(strict_types = 1);
+use Cosman\Queue\Runner\JobRunner;
+use Cosman\Queue\Store\Repository\TaskRepository;
+use GuzzleHttp\Client;
+use Illuminate\Database\Capsule\Manager;
+require_once './vendor/autoload.php';
 
+$capsule = new Manager();
+
+$capsule->addConnection([
+    'driver' => 'mysql',
+    'host' => 'localhost',
+    'database' => 'queue-service-database-name',
+    'username' => 'username',
+    'password' => 'password',
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix' => ''
+]);
+
+$repository = new TaskRepository($capsule->getConnection());
+
+$httpClient = new Client(); // Customize this a much as you'd like
+
+$runner = new JobRunner($httpClient, $repository);
+
+$runner->run();
 ```
+Launch the task runner script on the command line wifh the following command.
+```
+php -f path-to-runner-script-file.php
+```
+
+## API Server end points
