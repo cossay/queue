@@ -192,6 +192,16 @@ End point
 http://{hostname}/v1/projects/{project-code}/jobs
 ```
 
+Sample request data
+```json
+{
+  "title": "Latest job",
+  "description": "Description for latest job",
+  "retry_delay": 120, //Defaults to 1800 seconds (30 minutes)
+  "callback_url": "http://www.google.com"
+}
+```
+
 ### Fetching jobs under a project
 Request method:
 ```

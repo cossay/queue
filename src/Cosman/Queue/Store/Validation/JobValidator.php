@@ -74,6 +74,20 @@ class JobValidator extends BaseValidator
             ))
         );
         
+        $options['retry_delay'] = array(
+            new Assert\NotBlank(array(
+                'message' => 'Job retry delay required.'
+            )),
+            new Assert\Type(array(
+                'type' => 'integer',
+                'message' => 'Job retry delay must be an integer.'
+            )),
+            new Assert\GreaterThanOrEqual(array(
+                'value' => 0,
+                'message' => 'Job retry delay must be greather or equal to {{ compared_value }}.'
+            ))
+        );
+        
         $options['retries'] = array(
             new Assert\NotBlank(array(
                 'message' => 'Job retry required.'
