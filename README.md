@@ -88,3 +88,83 @@ php -f path-to-runner-script-file.php
 ```
 
 ## API Server end points
+
+### User (client) registration
+Request method: 
+```
+POST
+```
+End point: 
+```
+http://{hostname}/v1/clients
+```
+
+Sample request data
+```json
+{
+  "name": "Name",
+  "email": "email-address"
+}
+```
+
+Sample response
+```json
+{
+    "code": 200,
+    "message": "OK",
+    "payload": {
+        "name": "Kwame Nkansah",
+        "email": "kwamenkanssahs@nkansah.com",
+        "token": "BF7A8AFECCF256D840A4AD633EE250A850BAF646",
+        "is_blocked": false,
+        "id": 21,
+        "created_at": "2017-12-09T18:07:02+00:00",
+        "updated_at": null
+    }
+}
+```
+
+``NOTE: ALL REQUESTS FROM THIS SECTION DOWN REQUIRES THAT YOU PROVIDE YOUR ACCESS TOKEN  FOR IDENTIFICATION. HEADER NAME IS "QUEUE-ACCESS-TOKEN"``
+
+### Creating a project
+
+Request method:
+```
+POST
+```
+End point:
+```
+http://{hostname}/v1/projects
+```
+Sample data
+```json
+{
+  "name": "My awesome project",
+  "description": "My project description"
+}
+
+```
+
+Sample response
+```json
+{
+    "code": 200,
+    "message": "OK",
+    "payload": {
+        "client": {
+            "name": "Kwame Nkansah",
+            "email": "kwamenkanssahs@nkansah.com",
+            "is_blocked": false,
+            "id": 1,
+            "created_at": "2017-10-26T22:34:57+00:00",
+            "updated_at": null
+        },
+        "code": "4FFAC17FE5CE7603D77B126C93570DCB949CB408",
+        "name": "My awesome project",
+        "description": "My project description",
+        "id": 21,
+        "created_at": "2017-12-09T18:20:11+00:00",
+        "updated_at": null
+    }
+}
+```

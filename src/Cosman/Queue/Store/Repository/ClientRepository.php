@@ -111,7 +111,7 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ClientTable::FIELD_NAME => $client->getName(),
             ClientTable::FIELD_EMAIL => $client->getEmail(),
             ClientTable::FIELD_TOKEN => $client->getToken(),
-            ClientTable::FIELD_BLOCKED => Client::STATUS_UNBLOCKED,
+            ClientTable::FIELD_BLOCKED => ClientTable::BOOLEAN_FALSE,
             ClientTable::FIELD_CREATED_AT => new DateTime()
         );
         
@@ -137,7 +137,7 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
                         ClientTable::FIELD_NAME => $client->getName(),
                         ClientTable::FIELD_EMAIL => $client->getEmail(),
                         ClientTable::FIELD_TOKEN => $client->getToken(),
-                        ClientTable::FIELD_BLOCKED => $client->isBlocked() ? Client::STATUS_BLOCKED : Client::STATUS_UNBLOCKED,
+                        ClientTable::FIELD_BLOCKED => $client->isBlocked() ? ClientTable::BOOLEAN_TRUE : ClientTable::BOOLEAN_FALSE,
                         ClientTable::FIELD_UPDATED_AT => new DateTime()
                     );
                     

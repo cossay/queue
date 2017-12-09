@@ -55,17 +55,17 @@ class ClientValidator extends BaseValidator
                 'clientId' => $data['clientId'] ?? null
             ))
         );
-        
-        $options['password'] = array(
-            new Assert\NotBlank(array(
-                'message' => 'Account password must not be blank.'
-            )),
-            new Assert\Type(array(
-                'type' => 'string',
-                'message' => 'Account password must be a string.'
-            ))
-        );
-        
+        /*
+         * $options['password'] = array(
+         * new Assert\NotBlank(array(
+         * 'message' => 'Account password must not be blank.'
+         * )),
+         * new Assert\Type(array(
+         * 'type' => 'string',
+         * 'message' => 'Account password must be a string.'
+         * ))
+         * );
+         */
         return new Collection($options);
     }
 }

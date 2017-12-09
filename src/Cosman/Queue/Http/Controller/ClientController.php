@@ -56,8 +56,8 @@ class ClientController extends Controller
             
             $clientDetails = array(
                 'name' => $this->request->request->get('name'),
-                'email' => $this->request->request->get('email'),
-                'password' => $this->request->request->get('password')
+                'email' => $this->request->request->get('email')
+                // 'password' => $this->request->request->get('password')
             );
             
             if (! $this->validator->validate($clientDetails)) {
@@ -70,7 +70,7 @@ class ClientController extends Controller
             $client->setToken($code);
             $client->setName($clientDetails['name']);
             $client->setEmail($clientDetails['email']);
-            $client->setPassword($clientDetails['password']);
+            // $client->setPassword($clientDetails['password']);
             
             $clientId = $this->repository->create($client);
             

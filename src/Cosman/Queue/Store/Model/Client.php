@@ -29,7 +29,7 @@ class Client extends BaseModel
      *
      * @var string
      */
-    protected $password;
+    //protected $password;
 
     /**
      *
