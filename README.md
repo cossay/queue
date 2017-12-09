@@ -168,3 +168,62 @@ Sample response
     }
 }
 ```
+
+### Listing projects
+Request method:
+```
+GET
+```
+
+End point
+```
+http://{hostname}/v1/projects
+```
+You may provide a "limit" and an "offset" query parameters to paginate returned collection of projects. "limit" must be greater or equal to one and "offset" must be greater of equal to zero.
+
+### Creating a job
+Request method:
+```
+POST
+```
+
+End point
+```
+http://{hostname}/v1/projects/{project-code}/jobs
+```
+
+### Fetching jobs under a project
+Request method:
+```
+GET
+```
+
+End point:
+```
+http://{hostname}/v1/projects/{project}/jobs
+```
+
+### Fetching a single job under a project
+Request method:
+
+```
+GET
+```
+
+End point
+```
+http://{hostname}/v1/projects/{project-code}/jobs/{job-code}
+```
+
+### Viewing outputs for a job
+
+Request method:
+```
+GET
+```
+
+End point:
+
+```
+http://{hostname}/v1/projects/{project-code}/jobs/{job-code}/outputs
+```
