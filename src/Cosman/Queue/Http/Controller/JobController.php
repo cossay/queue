@@ -128,6 +128,7 @@ class JobController extends Controller
                 'payload' => $this->request->request->get('payload', $job->getPayload()),
                 'delay' => $this->request->request->get('delay', $job->getDelay()),
                 'retries' => $this->request->request->get('retries', $job->getRetries()),
+                'retry_delay' => $this->request->request->get('retry_delay', $job->getRetryDelay()),
                 'callback_url' => $this->request->request->get('callback_url', $job->getCallbackUrl()),
                 'request_method' => $this->request->request->get('request_method', $job->getRequestMethod()),
                 'headers' => $this->request->request->get('headers', $job->getHeaders())
