@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 class Controller
 {
 
-    const MESSAGE_ACCESS_FORBIDDEN = 'Yo do not have the required permission to access requested resource.';
+    const MESSAGE_ACCESS_FORBIDDEN = 'You do not have the required permission to access requested resource.';
 
     const MESSAGE_NOT_FOUND = 'Requested resource not found.';
 
