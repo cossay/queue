@@ -70,9 +70,11 @@ class Controller
         
         if (in_array($this->request->getMethod(), $targetRequests)) {
             
-            $contentType = $this->request->headers->get('content-type');
+            $jsonContentType = 'application/json';
             
-            if (0 === strpos($contentType, 'application/json')) {
+            $contentType = $this->request->headers->get('content-type', $jsonContentType);
+            
+            if (0 === strpos($contentType, $jsonContentType)) {
                 
                 $rawContent = $this->request->getContent();
                 
